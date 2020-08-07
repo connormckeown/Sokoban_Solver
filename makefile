@@ -1,5 +1,5 @@
 main:
-	g++ -o main src/main.cpp
+	g++ -o main main.cpp
 
 clean:
 	rm main
