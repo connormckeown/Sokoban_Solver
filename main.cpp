@@ -36,15 +36,24 @@ struct Node
     State state;
     int score;
     Node* parent;
+    string moves;
 
     Node(State state) {
         this->state = state;
     }
 
-    Node(State state, int score) {
+    Node(State state, Node* parent) {
         this->state = state;
-        this->score = score;
+        this->parent = parent;
+        moves = parent->moves;
     }
+
+    Node(State state, Node* parent, char move) {
+        this->state = state;
+        this->parent = parent;
+        this->moves = parent->moves + move;    // Add new move to moves (aka the path to get to this node)
+    }
+
 };
 
 State get_state_from_file(string path) {
@@ -90,112 +99,99 @@ vector<pair<Node, char>> get_possible_successors(Node* curr) {
 
     // Checking up
     if (curr->state.mat[py-1][px] == ' ') {
-        Node next = Node(curr->state);
-        next.parent = curr;
+        Node next = Node(curr->state, curr, 'u');
         next.state.player.second -= 1;
         successors.push_back(make_pair(next, 'u'));
     }
     // Checking down
     if (curr->state.mat[py+1][px] == ' ') {
-        Node next = Node(curr->state);
-        next.parent = curr;
+        Node next = Node(curr->state, curr, 'd');
         next.state.player.second += 1;
         successors.push_back(make_pair(next, 'd'));
     }
     // Checking left
     if (curr->state.mat[py][px-1] == ' ') {
-        Node next = Node(curr->state);
-        next.parent = curr;
+        Node next = Node(curr->state, curr, 'l');
         next.state.player.first -= 1;
         successors.push_back(make_pair(next, 'l'));
     }
     // Checking right
     if (curr->state.mat[py][px+1] == ' ') {
-        Node next = Node(curr->state);
-        next.parent = curr;
+        Node next = Node(curr->state, curr, 'r');
         next.state.player.first += 1;
         successors.push_back(make_pair(next, 'r'));
     }
 
     // Checking up and box
     if (curr->state.mat[py-1][px] == '$') {
-        Node next = Node(curr->state);
+        Node next = Node(curr->state, curr, 'U');
         
-        // Finding the corresponding box and push it
+        // Find the corresponding box and push it
         for (coord c : next.state.boxes) {
             if (c.first == px && c.second == py-1) {
-                if (next.state.mat[c.second-1][c.first] != '#') {
+                if (next.state.mat[c.second-1][c.first] != '#') { // Box can be pushed
                     c.second -= 1;
+                    next.state.player.second -= 1;
+                    successors.push_back(make_pair(next, 'U'));
                 }
             }
         }
-
-        next.parent = curr;
-        next.state.player.second -= 1;
-        successors.push_back(make_pair(next, 'U'));
     }
 
     // Checking down and box
     if (curr->state.mat[py+1][px] == '$') {
-        Node next = Node(curr->state);
+        Node next = Node(curr->state, curr, 'D');
         
         // Finding the corresponding box and push it
         for (coord c : next.state.boxes) {
             if (c.first == px && c.second == py+1) {
                 if (next.state.mat[c.second+1][c.first] != '#') {
                     c.second += 1;
+                    next.state.player.second += 1;
+                    successors.push_back(make_pair(next, 'D'));
                 }
             }
         }
-
-        next.parent = curr;
-        next.state.player.second += 1;
-        successors.push_back(make_pair(next, 'D'));
     }
 
     // Checking left and box
     if (curr->state.mat[py][px-1] == '$') {
-        Node next = Node(curr->state);
+        Node next = Node(curr->state, curr, 'L');
         
         // Finding the corresponding box and push it
         for (coord c : next.state.boxes) {
             if (c.first == px-1 && c.second == py) {
                 if (next.state.mat[c.second][c.first-1] != '#') {
                     c.first -= 1;
+                    next.state.player.first -= 1;
+                    successors.push_back(make_pair(next, 'L'));
                 }
             }
         }
-
-        next.parent = curr;
-        next.state.player.first -= 1;
-        successors.push_back(make_pair(next, 'L'));
     }
 
     // Checking right and box
     if (curr->state.mat[py][px+1] == '$') {
-        Node next = Node(curr->state);
+        Node next = Node(curr->state, curr, 'R');
         
         // Finding the corresponding box and push it
         for (coord c : next.state.boxes) {
             if (c.first == px+1 && c.second == py) {
                 if (next.state.mat[c.second][c.first+1] != '#') {
                     c.first += 1;
+                    next.state.player.first += 1;
+                    successors.push_back(make_pair(next, 'R'));
                 }
             }
         }
-
-        next.parent = curr;
-        next.state.player.first += 1;
-        successors.push_back(make_pair(next, 'R'));
     }
 
     return successors;
 }
 
 
-string astar(Node curr, string solution) {
-
-    
+string astar(Node curr) {
+    string solution = "";
     return solution;
 }
 
@@ -204,7 +200,7 @@ int main(int argc, char *argv[]) {
     State init_state = get_state_from_file(argv[1]);
     init_state.print();
 
-    Node start = Node(init_state, 0);
+    Node start = Node(init_state);
     
     // Printing initial data
     cout << endl << "Player Position: " << start.state.player.first << "," << start.state.player.second << endl;
