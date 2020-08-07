@@ -7,9 +7,17 @@ using namespace std;
 typedef pair<int, int> coord;
 vector<vector<char>> mat;
 
+int distance(int x, int y, int dx, int dy) {
+    return abs(dx-x) + abs(dy-y);
+}
+
+int distance(coord p, coord dp) {
+    return abs(dp.first-p.first) + abs(dp.second-p.second);
+}
+
+
 struct State
 {
-    //vector<vector<char>> mat;
     vector<coord> boxes;
     vector<coord> goals;
     coord player;
@@ -24,7 +32,7 @@ struct State
             cout << c.first << "," << c.second << "  ";
         cout << endl;
 
-        cout << "Goal Locations:";
+        cout << "Goal Locations: ";
         for (coord c : goals)
             cout << c.first << "," << c.second << "  ";
         cout << endl;
@@ -35,61 +43,51 @@ struct State
 struct Node
 {
     State state;
-    int score;
     Node* parent;
     string moves;
+    int g;
 
     Node(State state) {
         this->state = state;
+        parent = NULL;
+        moves = "";
+        g = 0;
     }
 
     Node(State state, Node* parent) {
         this->state = state;
         this->parent = parent;
         moves = parent->moves;
+        g = parent->g + 1;
     }
 
     Node(State state, Node* parent, char move) {
         this->state = state;
         this->parent = parent;
-        this->moves = parent->moves + move;    // Add new move to moves (aka the path to get to this node)
+        moves = parent->moves + move;    // Add new move to moves (aka the path to get to this node)
+        g = parent->g + 1;
     }
 
+    /*
+        Returns shortest distance from player to the nearest goal
+    */
+    int manhattan_h() {
+        int min_dist = INT8_MIN;
+        for (coord g : state.goals) {
+            int curr_dist = distance(state.player, g);
+            if (curr_dist > min_dist) {
+                min_dist = curr_dist;
+            }
+        }
+        return min_dist;
+    }
+
+    void print() {
+        state.print();
+        cout << "moves = " << moves << endl << "g = " << g << endl << "h = " << manhattan_h() << endl;
+    }
 };
 
-/*
-    
-*/
-State get_state_from_file(string path) {
-    ifstream file(path);
-    string line;
-    vector<char> row;
-    State state;
-    int x = 0;
-    int y = 0;
-
-    while (getline(file, line)) {
-        for (char c : line) {
-            if (c == '\n' || c == '\r') {
-                continue;
-            } else if (c == '$') {
-                state.boxes.push_back(make_pair(x, y));
-            } else if (c == '@') {
-                state.player = make_pair(x, y);
-            } else if (c == '.') {
-                state.goals.push_back(make_pair(x, y));
-            }
-            x++;
-            row.push_back(c);
-        }
-        x = 0;
-        y++;
-        mat.push_back(row);
-        row.clear();
-    }
-    
-    return state;
-}
 
 /*
     Returns a vector of possible successor Nodes
@@ -127,7 +125,7 @@ vector<Node> get_possible_successors(Node* curr) {
     }
 
     // Checking up and box
-    if (mat[py-1][px] == '$') {
+    if (mat[py-1][px] == '$' && mat[py-2][px] == ' ') {
         Node next = Node(curr->state, curr, 'U');
         
         // Find the corresponding box and push it
@@ -143,7 +141,7 @@ vector<Node> get_possible_successors(Node* curr) {
     }
 
     // Checking down and box
-    if (mat[py+1][px] == '$') {
+    if (mat[py+1][px] == '$' && mat[py+2][px] == ' ') {
         Node next = Node(curr->state, curr, 'D');
         
         // Finding the corresponding box and push it
@@ -159,7 +157,7 @@ vector<Node> get_possible_successors(Node* curr) {
     }
 
     // Checking left and box
-    if (mat[py][px-1] == '$') {
+    if (mat[py][px-1] == '$' && mat[py][px-2] == ' ') {
         Node next = Node(curr->state, curr, 'L');
         
         // Finding the corresponding box and push it
@@ -175,7 +173,7 @@ vector<Node> get_possible_successors(Node* curr) {
     }
 
     // Checking right and box
-    if (mat[py][px+1] == '$') {
+    if (mat[py][px+1] == '$' && mat[py][px+2] == ' ') {
         Node next = Node(curr->state, curr, 'R');
         
         // Finding the corresponding box and push it
@@ -199,15 +197,49 @@ string astar(Node curr) {
     return solution;
 }
 
+/*
+    Returns the initial state and also fills the global matrix
+*/
+State get_state_from_file(string path) {
+    ifstream file(path);
+    string line;
+    vector<char> row;
+    State state;
+    int x = 0;
+    int y = 0;
+
+    while (getline(file, line)) {
+        for (char c : line) {
+            if (c == '\n' || c == '\r') {
+                continue;
+            } else if (c == '$') {
+                state.boxes.push_back(make_pair(x, y));
+            } else if (c == '@') {
+                state.player = make_pair(x, y);
+            } else if (c == '.') {
+                state.goals.push_back(make_pair(x, y));
+            }
+            x++;
+            row.push_back(c);
+        }
+        x = 0;
+        y++;
+        mat.push_back(row);
+        row.clear();
+    }
+    
+    return state;
+}
 
 int main(int argc, char *argv[]) {
     Node* start = new Node(get_state_from_file(argv[1]));
-    start->state.print();
+    //start->state.print();
+    start->print();
    
-    cout << "Possible successors (moves): ";
+    cout << "Possible successors (moves):" << endl;
     vector<Node> successors = get_possible_successors(start);
     for (Node n : successors) {
-        cout << n.moves << " ";
+        n.print();
     }
     cout << endl << endl;
 
