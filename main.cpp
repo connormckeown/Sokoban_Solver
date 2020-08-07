@@ -89,28 +89,28 @@ vector<pair<Node, char>> get_possible_successors(Node* curr) {
 
 
     // Checking up
-    if (curr->state.mat[px][py-1] == ' ') {
+    if (curr->state.mat[py-1][px] == ' ') {
         Node next = Node(curr->state);
         next.parent = curr;
         next.state.player.second -= 1;
         successors.push_back(make_pair(next, 'u'));
     }
     // Checking down
-    if (curr->state.mat[px][py+1] == ' ') {
+    if (curr->state.mat[py+1][px] == ' ') {
         Node next = Node(curr->state);
         next.parent = curr;
         next.state.player.second += 1;
         successors.push_back(make_pair(next, 'd'));
     }
     // Checking left
-    if (curr->state.mat[px-1][py] == ' ') {
+    if (curr->state.mat[py][px-1] == ' ') {
         Node next = Node(curr->state);
         next.parent = curr;
         next.state.player.first -= 1;
         successors.push_back(make_pair(next, 'l'));
     }
     // Checking right
-    if (curr->state.mat[px+1][py] == ' ') {
+    if (curr->state.mat[py][px+1] == ' ') {
         Node next = Node(curr->state);
         next.parent = curr;
         next.state.player.first += 1;
@@ -118,13 +118,13 @@ vector<pair<Node, char>> get_possible_successors(Node* curr) {
     }
 
     // Checking up and box
-    if (curr->state.mat[px][py-1] == '$') {
+    if (curr->state.mat[py-1][px] == '$') {
         Node next = Node(curr->state);
         
         // Finding the corresponding box and push it
         for (coord c : next.state.boxes) {
             if (c.first == px && c.second == py-1) {
-                if (next.state.mat[c.first][c.second-1] != '#') {
+                if (next.state.mat[c.second-1][c.first] != '#') {
                     c.second -= 1;
                 }
             }
@@ -136,13 +136,13 @@ vector<pair<Node, char>> get_possible_successors(Node* curr) {
     }
 
     // Checking down and box
-    if (curr->state.mat[px][py+1] == '$') {
+    if (curr->state.mat[py+1][px] == '$') {
         Node next = Node(curr->state);
         
         // Finding the corresponding box and push it
         for (coord c : next.state.boxes) {
             if (c.first == px && c.second == py+1) {
-                if (next.state.mat[c.first][c.second+1] != '#') {
+                if (next.state.mat[c.second+1][c.first] != '#') {
                     c.second += 1;
                 }
             }
@@ -154,13 +154,13 @@ vector<pair<Node, char>> get_possible_successors(Node* curr) {
     }
 
     // Checking left and box
-    if (curr->state.mat[px-1][py] == '$') {
+    if (curr->state.mat[py][px-1] == '$') {
         Node next = Node(curr->state);
         
         // Finding the corresponding box and push it
         for (coord c : next.state.boxes) {
             if (c.first == px-1 && c.second == py) {
-                if (next.state.mat[c.first-1][c.second] != '#') {
+                if (next.state.mat[c.second][c.first-1] != '#') {
                     c.first -= 1;
                 }
             }
@@ -172,13 +172,13 @@ vector<pair<Node, char>> get_possible_successors(Node* curr) {
     }
 
     // Checking right and box
-    if (curr->state.mat[px+1][py] == '$') {
+    if (curr->state.mat[py][px+1] == '$') {
         Node next = Node(curr->state);
         
         // Finding the corresponding box and push it
         for (coord c : next.state.boxes) {
             if (c.first == px+1 && c.second == py) {
-                if (next.state.mat[c.first+1][c.second] != '#') {
+                if (next.state.mat[c.second][c.first+1] != '#') {
                     c.first += 1;
                 }
             }
