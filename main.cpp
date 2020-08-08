@@ -1,6 +1,7 @@
 #include <iostream>
 #include <fstream>
 #include <vector>
+#include<bits/stdc++.h>
 
 using namespace std;
 
@@ -88,11 +89,39 @@ struct Node
         return false;
     }
 
+    // Check that each goal space is covered by a box
+    bool goal_test() {
+        bool covered;
+        for (coord g : state.goals) {
+            covered = false;
+            for (coord b : state.boxes) {
+                if (b == g) covered = true;
+            }
+            if (!covered) return false;
+        }
+        return true;
+    }
+
     void print() {
         state.print();
         cout << "moves = " << moves << endl << "g = " << g << endl << "h = " << manhattan_h() << endl;
     }
 };
+
+//insertion sort descending
+void sort_nodes(vector<Node> &v) {
+    Node key = v[0];
+    int j;
+    for(int i = 1; i < v.size(); i++) {
+      key = v[i];
+      j = i;
+      while(j > 0 && (v[j-1].g + v[j-1].manhattan_h()) < (key.g + key.manhattan_h())) {
+         v[j] = v[j-1];
+         j--;
+      }
+      v[j] = key; 
+    }
+}
 
 
 /*
@@ -100,6 +129,7 @@ struct Node
 */
 vector<Node> get_possible_successors(Node* curr) {
     vector<Node> successors;
+
     int px = curr->state.player.first;
     int py = curr->state.player.second;
 
@@ -188,10 +218,54 @@ vector<Node> get_possible_successors(Node* curr) {
     return successors;
 }
 
+bool nodes_equal(const Node &a, const Node &b) {
+    return (a.moves == b.moves);
+}
 
-string astar(Node curr) {
-    string solution = "";
-    return solution;
+string astar(Node* root) {
+    vector<Node> closed_list, open_list;
+    open_list.push_back(*root);
+
+    while(!open_list.empty()) {
+        sort_nodes(open_list);  // sort by decreasing f(n)
+        Node n = open_list.back();  // n has the lowest f(n)
+        open_list.pop_back();
+        //n.print();  //test
+
+        if (n.goal_test()) return n.moves;    // if n is a goal return path
+        closed_list.push_back(n);   // move n to closed
+
+        for (Node np : get_possible_successors(&n)) {
+
+            //if child in OPEN list and new n' is not better, continue
+            for (Node new_np : open_list) {
+                if (nodes_equal(np, new_np) && ((new_np.g + new_np.manhattan_h()) > (np.g + np.manhattan_h()))) continue;
+            }
+
+            //if n' in CLOSED list and new n' is not better, continue
+            for (Node new_np : closed_list) {
+                if (nodes_equal(np, new_np) && ((new_np.g + new_np.manhattan_h()) > (np.g + np.manhattan_h()))) continue;
+            }
+
+            // removes all np from open and closed
+            for (int i = 0; i < open_list.size(); i++) {
+                if (nodes_equal(np, open_list[i])) {
+                    open_list.erase(open_list.begin() + i);
+                }
+            }
+            
+            for (int i = 0; i < closed_list.size(); i++) {
+                if (nodes_equal(np, closed_list[i])) {
+                    closed_list.erase(closed_list.begin() + i);
+                }
+            }
+
+            open_list.push_back(np);
+        }
+
+    }
+
+    return "NO SOLUTION";
 }
 
 /*
@@ -230,16 +304,18 @@ State get_state_from_file(string path) {
 
 int main(int argc, char *argv[]) {
     Node* start = new Node(get_state_from_file(argv[1]));
-    cout << "Start Node";
+    cout << endl << "-----Start Node-----";
     start->print();
     cout << endl;
    
-    cout << "Successors";
+/*
+    cout << "-----Successors-----";
     vector<Node> successors = get_possible_successors(start);
     for (Node n : successors) {
         n.print();
     }
     cout << endl;
-
-    //string solution = astar(start, "");
+*/
+    string solution = astar(start);
+    cout << endl << "solution: " << solution << endl;
 }
