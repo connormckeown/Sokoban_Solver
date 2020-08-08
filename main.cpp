@@ -1,7 +1,8 @@
 #include <iostream>
 #include <fstream>
 #include <vector>
-#include<bits/stdc++.h>
+#include <bits/stdc++.h>
+#include <chrono>
 
 using namespace std;
 
@@ -101,7 +102,7 @@ struct Node
         Returns the heuristics added together as a total score
     */
     int f() {
-        return g + manhattan_h() + h2();
+        return g + max(manhattan_h(), h2());
     }
 
     bool is_box_coord(coord p) {    // To check if the given coordinate corresponds to a box
@@ -146,6 +147,33 @@ void sort_nodes(vector<Node> &v) {
     }
 }
 
+/*
+    Checks to see if all box locations and player location are the same
+*/
+bool compare_nodes(const Node &a, const Node &b) {
+    int correct_boxes = 0;
+    bool player = false;
+    for (coord abox : a.state.boxes) {
+        for (coord bbox : b.state.boxes) {
+            if (abox == bbox) { 
+                correct_boxes++;
+            }
+        }
+    }
+    
+    if (a.state.player == b.state.player) {
+        player = true;
+    }
+
+    return correct_boxes == a.state.boxes.size() && player;
+}
+
+/*
+    Returns a char of the opposite direction
+*/
+char turnback(char c) {
+    return c;
+}
 
 /*
     Returns a vector of possible successor Nodes
@@ -241,13 +269,11 @@ vector<Node> get_possible_successors(Node* curr) {
     return successors;
 }
 
-bool nodes_equal(const Node &a, const Node &b) {
-    return (a.moves == b.moves);
-}
 
 string astar(Node* root) {
     vector<Node> closed_list, open_list;
     open_list.push_back(*root);
+    int size = 1000;
 
     while(!open_list.empty()) {
         sort_nodes(open_list);  // sort by decreasing f(n)
@@ -255,29 +281,35 @@ string astar(Node* root) {
         open_list.pop_back();
         closed_list.push_back(n);   // move n to closed
 
-        if (n.goal_test()) return n.moves;    // if n is a goal return path
+        //n.print();
 
-        // print # of nodes in open list
-        if (open_list.size() % 1000 == 0)
-            cout << "nodes in open list: " << open_list.size() << endl;
+        if (n.goal_test()) {
+            cout << "open nodes: " << open_list.size() << endl;
+            cout << "closed nodes: " << closed_list.size() << endl;
+            return n.moves; // if n is a goal return path
+        }     
+
+        // print open and closed lists periodically
+        if (open_list.size() > size) {
+            cout << "open nodes: " << open_list.size() << ", closed nodes: " << closed_list.size() << endl;
+            size += 1000;
+        }
 
         for (Node child : get_possible_successors(&n)) {
             bool node_seen = false;
 
             //if child in open, continue
             for (Node open_node : open_list) {
-                if (nodes_equal(child, open_node)) {
+                if (compare_nodes(child, open_node)) {  
                     node_seen = true;
-                    cout << "already seen" << endl;
                     break;
                 }
             }
             
             //if child in closed, continue
             for (Node closed_node : closed_list) {
-                if (nodes_equal(child, closed_node)) {
+                if (compare_nodes(child, closed_node)) {
                     node_seen = true;
-                    cout << "already seen" << endl;
                     break;
                 }
             }
@@ -328,7 +360,12 @@ State get_state_from_file(string path) {
 int main(int argc, char *argv[]) {
     Node* start = new Node(get_state_from_file(argv[1]));
     
-    string solution = astar(start); // time
+    // Timing the search
+    auto t1 = chrono::high_resolution_clock::now();
+    string solution = astar(start);
+    auto t2 = chrono::high_resolution_clock::now();
+    float duration = chrono::duration_cast<chrono::microseconds>( t2 - t1 ).count();
 
+    cout << "time: " << duration/1000000.0 << " seconds" << endl;
     cout << endl << "solution: " << solution << endl;
 }
