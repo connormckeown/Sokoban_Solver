@@ -73,14 +73,35 @@ struct Node
         Returns shortest distance from player to the nearest goal
     */
     int manhattan_h() {
-        int min_dist = INT8_MIN;
+        int min_dist = INT8_MAX;
         for (coord g : state.goals) {
             int curr_dist = distance(state.player, g);
-            if (curr_dist > min_dist) {
+            if (curr_dist < min_dist) {
                 min_dist = curr_dist;
             }
         }
         return min_dist;
+    }
+
+    /*
+        Returns shortest distance from player to nearest box
+    */
+    int h2() {
+        int min_dist = INT8_MAX;
+        for (coord b : state.boxes) {
+            int box_dist = distance(b, state.player);
+            if (box_dist < min_dist) {
+                min_dist = box_dist;
+            }
+        }
+        return min_dist;
+    }
+
+    /*
+        Returns the heuristics added together as a total score
+    */
+    int f() {
+        return g + manhattan_h() + h2();
     }
 
     bool is_box_coord(coord p) {    // To check if the given coordinate corresponds to a box
@@ -104,18 +125,20 @@ struct Node
 
     void print() {
         state.print();
-        cout << "moves = " << moves << endl << "g = " << g << endl << "h = " << manhattan_h() << endl;
+        cout << "moves = " << moves << endl << "g = " << g << endl << "f = " << f() << endl;
     }
 };
 
-//insertion sort descending
+/*
+    Insertion sort in descending order of f(n)
+*/
 void sort_nodes(vector<Node> &v) {
     Node key = v[0];
     int j;
     for(int i = 1; i < v.size(); i++) {
       key = v[i];
       j = i;
-      while(j > 0 && (v[j-1].g + v[j-1].manhattan_h()) < (key.g + key.manhattan_h())) {
+      while(j > 0 && v[j-1].f() < key.f()) {
          v[j] = v[j-1];
          j--;
       }
@@ -230,37 +253,37 @@ string astar(Node* root) {
         sort_nodes(open_list);  // sort by decreasing f(n)
         Node n = open_list.back();  // n has the lowest f(n)
         open_list.pop_back();
-        //n.print();  //test
-
-        if (n.goal_test()) return n.moves;    // if n is a goal return path
         closed_list.push_back(n);   // move n to closed
 
-        for (Node np : get_possible_successors(&n)) {
+        if (n.goal_test()) return n.moves;    // if n is a goal return path
 
-            //if child in OPEN list and new n' is not better, continue
-            for (Node new_np : open_list) {
-                if (nodes_equal(np, new_np) && ((new_np.g + new_np.manhattan_h()) > (np.g + np.manhattan_h()))) continue;
-            }
+        // print # of nodes in open list
+        if (open_list.size() % 1000 == 0)
+            cout << "nodes in open list: " << open_list.size() << endl;
 
-            //if n' in CLOSED list and new n' is not better, continue
-            for (Node new_np : closed_list) {
-                if (nodes_equal(np, new_np) && ((new_np.g + new_np.manhattan_h()) > (np.g + np.manhattan_h()))) continue;
-            }
+        for (Node child : get_possible_successors(&n)) {
+            bool node_seen = false;
 
-            // removes all np from open and closed
-            for (int i = 0; i < open_list.size(); i++) {
-                if (nodes_equal(np, open_list[i])) {
-                    open_list.erase(open_list.begin() + i);
+            //if child in open, continue
+            for (Node open_node : open_list) {
+                if (nodes_equal(child, open_node)) {
+                    node_seen = true;
+                    cout << "already seen" << endl;
+                    break;
                 }
             }
             
-            for (int i = 0; i < closed_list.size(); i++) {
-                if (nodes_equal(np, closed_list[i])) {
-                    closed_list.erase(closed_list.begin() + i);
+            //if child in closed, continue
+            for (Node closed_node : closed_list) {
+                if (nodes_equal(child, closed_node)) {
+                    node_seen = true;
+                    cout << "already seen" << endl;
+                    break;
                 }
             }
 
-            open_list.push_back(np);
+            if (!node_seen) 
+                open_list.push_back(child);
         }
 
     }
