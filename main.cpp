@@ -344,6 +344,9 @@ State get_state_from_file(string path) {
                 state.player = make_pair(x, y);
             } else if (c == '.') {
                 state.goals.push_back(make_pair(x, y));
+            } else if (c == '*') {
+                state.goals.push_back(make_pair(x, y));
+                state.boxes.push_back(make_pair(x, y));
             }
             x++;
             row.push_back(c);
@@ -357,6 +360,12 @@ State get_state_from_file(string path) {
     return state;
 }
 
+/*
+    TODO
+    -implement turnback in get_possible_successors
+    -change heuristic to prioritize boxes that arent on goals
+    -also just change heuristic in general
+*/
 int main(int argc, char *argv[]) {
     Node* start = new Node(get_state_from_file(argv[1]));
     
