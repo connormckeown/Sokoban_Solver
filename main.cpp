@@ -82,6 +82,12 @@ struct Node
         return min_dist;
     }
 
+    bool is_box_coord(coord p) {    // To check if the given coordinate corresponds to a box
+        for (coord b : state.boxes) 
+            if (p == b) return true;
+        return false;
+    }
+
     void print() {
         state.print();
         cout << "moves = " << moves << endl << "g = " << g << endl << "h = " << manhattan_h() << endl;
@@ -91,7 +97,6 @@ struct Node
 
 /*
     Returns a vector of possible successor Nodes
-    NEED TO ADD SCORE TO NEXT NODE VIA DISTANCE CHECKING
 */
 vector<Node> get_possible_successors(Node* curr) {
     vector<Node> successors;
@@ -100,90 +105,82 @@ vector<Node> get_possible_successors(Node* curr) {
 
 
     // Checking up
-    if (mat[py-1][px] == ' ') {
+    if (!curr->is_box_coord(make_pair(py-1, px)) && mat[py-1][px] != '#') {
         Node next = Node(curr->state, curr, 'u');
         next.state.player.second -= 1;
         successors.push_back(next);
     }
     // Checking down
-    if (mat[py+1][px] == ' ') {
+    if (!curr->is_box_coord(make_pair(py+1, px)) && mat[py+1][px] != '#') {
         Node next = Node(curr->state, curr, 'd');
         next.state.player.second += 1;
         successors.push_back(next);
     }
     // Checking left
-    if (mat[py][px-1] == ' ') {
+    if (!curr->is_box_coord(make_pair(py, px-1)) && mat[py][px-1] != '#') {
         Node next = Node(curr->state, curr, 'l');
         next.state.player.first -= 1;
         successors.push_back(next);
     }
     // Checking right
-    if (mat[py][px+1] == ' ') {
+    if (!curr->is_box_coord(make_pair(py, px+1)) && mat[py][px+1] != '#') {
         Node next = Node(curr->state, curr, 'r');
         next.state.player.first += 1;
         successors.push_back(next);
     }
 
     // Checking up and box
-    if (mat[py-1][px] == '$' && mat[py-2][px] == ' ') {
+    if (curr->is_box_coord(make_pair(px, py-1)) && !curr->is_box_coord(make_pair(px, py-2)) && mat[py-2][px] != '#') {
         Node next = Node(curr->state, curr, 'U');
         
-        // Find the corresponding box and push it
-        for (coord c : next.state.boxes) {
-            if (c.first == px && c.second == py-1) {
-                if (mat[c.second-1][c.first] != '#') { // Box can be pushed
-                    c.second -= 1;
-                    next.state.player.second -= 1;
-                    successors.push_back(next);
-                }
+        // Finding the corresponding box and push it
+        for (int i = 0; i < next.state.boxes.size(); i++) {
+            if (next.state.boxes[i] == make_pair(px, py-1)) {
+                next.state.boxes[i] = make_pair(px, py-2);
+                next.state.player.second -= 1;
+                successors.push_back(next);
             }
         }
     }
 
     // Checking down and box
-    if (mat[py+1][px] == '$' && mat[py+2][px] == ' ') {
+    if (curr->is_box_coord(make_pair(px, py+1)) && !curr->is_box_coord(make_pair(px, py+2)) && mat[py+2][px] != '#') {
         Node next = Node(curr->state, curr, 'D');
         
         // Finding the corresponding box and push it
-        for (coord c : next.state.boxes) {
-            if (c.first == px && c.second == py+1) {
-                if (mat[c.second+1][c.first] != '#') {
-                    c.second += 1;
-                    next.state.player.second += 1;
-                    successors.push_back(next);
-                }
+        for (int i = 0; i < next.state.boxes.size(); i++) {
+            if (next.state.boxes[i] == make_pair(px, py+1)) {
+                next.state.boxes[i] = make_pair(px, py+2);
+                next.state.player.second += 1;
+                successors.push_back(next);
             }
         }
     }
 
     // Checking left and box
-    if (mat[py][px-1] == '$' && mat[py][px-2] == ' ') {
+    if (curr->is_box_coord(make_pair(px-1, py)) && !curr->is_box_coord(make_pair(px-2, py)) && mat[py][px-2] != '#') {
         Node next = Node(curr->state, curr, 'L');
         
         // Finding the corresponding box and push it
-        for (coord c : next.state.boxes) {
-            if (c.first == px-1 && c.second == py) {
-                if (mat[c.second][c.first-1] != '#') {
-                    c.first -= 1;
-                    next.state.player.first -= 1;
-                    successors.push_back(next);
-                }
+        for (int i = 0; i < next.state.boxes.size(); i++) {
+            if (next.state.boxes[i] == make_pair(px-1, py)) {
+                next.state.boxes[i] = make_pair(px-2, py);
+                next.state.player.first -= 1;
+                successors.push_back(next);
             }
         }
     }
 
     // Checking right and box
-    if (mat[py][px+1] == '$' && mat[py][px+2] == ' ') {
+    if (curr->is_box_coord(make_pair(px+1, py)) && !curr->is_box_coord(make_pair(px+2, py)) && mat[py][px+2] != '#') {
         Node next = Node(curr->state, curr, 'R');
         
         // Finding the corresponding box and push it
-        for (coord c : next.state.boxes) {
-            if (c.first == px+1 && c.second == py) {
-                if (mat[c.second][c.first+1] != '#') {
-                    c.first += 1;
-                    next.state.player.first += 1;
-                    successors.push_back(next);
-                }
+        for (int i = 0; i < next.state.boxes.size(); i++) {
+            if (next.state.boxes[i] == make_pair(px+1, py)) {
+                next.state.boxes[i] = make_pair(px+2, py);
+                next.state.player.first += 1;
+                successors.push_back(next);
             }
         }
     }
@@ -233,16 +230,16 @@ State get_state_from_file(string path) {
 
 int main(int argc, char *argv[]) {
     Node* start = new Node(get_state_from_file(argv[1]));
-    //start->state.print();
+    cout << "Start Node";
     start->print();
+    cout << endl;
    
-    cout << "Possible successors (moves):" << endl;
+    cout << "Successors";
     vector<Node> successors = get_possible_successors(start);
     for (Node n : successors) {
         n.print();
     }
-    cout << endl << endl;
-
+    cout << endl;
 
     //string solution = astar(start, "");
 }
