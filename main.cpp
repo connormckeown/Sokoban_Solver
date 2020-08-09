@@ -385,6 +385,7 @@ State get_state_from_file(string path) {
     TODO
     -change heuristic to prioritize boxes that arent on goals
     -also just change heuristic in general
+    -change h() to be the distance from the boxes to nearest goals + distance from player to nearest goals
 */
 int main(int argc, char *argv[]) {
     Node* start = new Node(get_state_from_file(argv[1]));
