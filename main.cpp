@@ -185,10 +185,11 @@ bool compare_nodes(const Node &a, const Node &b) {
 }
 
 /*
-    Returns a char of the opposite direction
+    Returns the last move.
+    For the backtrack heuristic.
 */
-char turnback(char c) {
-    return c;
+char last_move(string moves) {
+    return moves[moves.length()-1];
 }
 
 /*
@@ -196,31 +197,30 @@ char turnback(char c) {
 */
 vector<Node> get_possible_successors(Node* curr) {
     vector<Node> successors;
-
     int px = curr->state.player.x;
     int py = curr->state.player.y;
-
+    char prev_move = last_move(curr->moves);
 
     // Checking up
-    if (!curr->is_box_coord(Vec2d(px, py-1)) && mat[py-1][px] != '#') {
+    if (!curr->is_box_coord(Vec2d(px, py-1)) && mat[py-1][px] != '#' && prev_move != 'd') {
         Node next = Node(curr->state, curr, 'u');
         next.state.player.y -= 1;
         successors.push_back(next);
     }
     // Checking down
-    if (!curr->is_box_coord(Vec2d(px, py+1)) && mat[py+1][px] != '#') {
+    if (!curr->is_box_coord(Vec2d(px, py+1)) && mat[py+1][px] != '#' && prev_move != 'u') {
         Node next = Node(curr->state, curr, 'd');
         next.state.player.y += 1;
         successors.push_back(next);
     }
     // Checking left
-    if (!curr->is_box_coord(Vec2d(px-1, py)) && mat[py][px-1] != '#') {
+    if (!curr->is_box_coord(Vec2d(px-1, py)) && mat[py][px-1] != '#' && prev_move != 'r') {
         Node next = Node(curr->state, curr, 'l');
         next.state.player.x -= 1;
         successors.push_back(next);
     }
     // Checking right
-    if (!curr->is_box_coord(Vec2d(px+1, py)) && mat[py][px+1] != '#') {
+    if (!curr->is_box_coord(Vec2d(px+1, py)) && mat[py][px+1] != '#' && prev_move != 'l') {
         Node next = Node(curr->state, curr, 'r');
         next.state.player.x += 1;
         successors.push_back(next);
@@ -365,6 +365,9 @@ State get_state_from_file(string path) {
             } else if (c == '*') {
                 state.goals.push_back(Vec2d(x, y));
                 state.boxes.push_back(Vec2d(x, y));
+            } else if (c == '+') {
+                state.goals.push_back(Vec2d(x, y));
+                state.player = Vec2d(x, y);
             }
             x++;
             row.push_back(c);
@@ -380,10 +383,8 @@ State get_state_from_file(string path) {
 
 /*
     TODO
-    -implement turnback in get_possible_successors
     -change heuristic to prioritize boxes that arent on goals
     -also just change heuristic in general
-    -switch all coords to new struct with x and y -- DONE
 */
 int main(int argc, char *argv[]) {
     Node* start = new Node(get_state_from_file(argv[1]));
@@ -392,7 +393,7 @@ int main(int argc, char *argv[]) {
     auto t1 = chrono::high_resolution_clock::now();
     string solution = astar(start);
     auto t2 = chrono::high_resolution_clock::now();
-    float duration = chrono::duration_cast<chrono::microseconds>( t2 - t1 ).count();
+    float duration = chrono::duration_cast<chrono::microseconds>(t2 - t1).count();
 
     cout << "time: " << duration/1000000.0 << " seconds" << endl;
     cout << endl << "solution: " << solution << endl;
