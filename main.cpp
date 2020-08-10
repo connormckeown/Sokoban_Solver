@@ -13,7 +13,10 @@ struct Vec2d
     int x;
     int y;
 
-    Vec2d(){}
+    Vec2d() {
+        x = 0;
+        y = 0;
+    }
 
     Vec2d(int x, int y) {
         this->x = x;
@@ -56,6 +59,107 @@ int dist(int x, int y, int dx, int dy) {
 int dist(const Vec2d &p, const Vec2d &dp) {
     return abs(dp.x-p.x) + abs(dp.y-p.y);
 }
+
+/*
+    Hungarian Algorithm for the Min-Cost Matching Heuristic.
+    Takes in a vector<vector<double>> holding the costs of each box to each goal.
+    Returns the min total distance (cost) of the perfect pairing between boxes and goals.
+*/
+double min_cost_matching(const vector<vector<double>> &cost) {
+    int n = int(cost.size());
+
+    vector<double> u(n);
+    vector<double> v(n);
+    for (int i = 0; i < n; i++) {
+        u[i] = cost[i][0];
+        for (int j = 1; j < n; j++) 
+            u[i] = min(u[i], cost[i][j]);
+    }
+    for (int j = 0; j < n; j++) {
+        v[j] = cost[0][j] - u[0];
+        for (int i = 1; i < n; i++) 
+            v[j] = min(v[j], cost[i][j] - u[i]);
+    }
+    
+    vector<int> left = vector<int>(n, -1);
+    vector<int> right = vector<int>(n, -1);
+    int mated = 0;
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j < n; j++) {
+            if (right[j] != -1) continue;
+            if (fabs(cost[i][j] - u[i] - v[j]) < 1e-10) {
+                left[i] = j;
+                right[j] = i;
+                mated++;
+                break;
+            }
+        }
+    }
+    
+    vector<double> dist(n);
+    vector<int> djk(n);
+    vector<int> seen(n);
+    
+    // loop until left and right paired
+    while (mated < n) {
+        int s = 0;
+        while (left[s] != -1) s++;
+        
+        // dijkstra
+        fill(djk.begin(), djk.end(), -1);
+        fill(seen.begin(), seen.end(), 0);
+        for (int k = 0; k < n; k++) 
+        dist[k] = cost[s][k] - u[s] - v[k];
+        
+        int j = 0;
+        while (true) {
+            j = -1;
+            for (int k = 0; k < n; k++) {
+                if (seen[k]) continue;
+                if (j == -1 || dist[k] < dist[j]) j = k;
+            }
+            seen[j] = 1;
+            
+            if (right[j] == -1) break;
+            
+            const int i = right[j];
+            for (int k = 0; k < n; k++) {
+                if (seen[k]) continue;
+                const double new_dist = dist[j] + cost[i][k] - u[i] - v[k];
+                if (dist[k] > new_dist) {
+                dist[k] = new_dist;
+                djk[k] = j;
+                }
+            }
+        }
+        
+        for (int k = 0; k < n; k++) {
+            if (k == j || !seen[k]) continue;
+            const int i = right[k];
+            v[k] += dist[k] - dist[j];
+            u[i] -= dist[k] - dist[j];
+        }
+        u[s] += dist[j];
+        
+        // augment step
+        while (djk[j] >= 0) {
+            const int d = djk[j];
+            right[j] = right[d];
+            left[right[j]] = j;
+            j = d;
+        }
+        right[j] = s;
+        left[s] = j;
+        mated++;
+    }
+    
+    double result = 0;
+    for (int i = 0; i < n; i++)
+        result += cost[i][left[i]];
+    
+    return result;
+}
+
 
 //score is going to be based off the boxes dists from the goals
 struct Node
@@ -132,23 +236,21 @@ struct Node
         + distances from all boxes to their nearest goal
     */
     int h() {
-        int h = INT8_MAX;
-        int temp_dist = INT8_MAX;
         int total_dist = 0;
+        vector<vector<double>> cost;
 
-        // for each box, calculate the distance between it and its nearest goal
-        // add that value to total_dist
         for (Vec2d box : state.boxes) {
-            for (Vec2d goal: state.goals) {
-                if (dist(box, goal) < temp_dist) {
-                    temp_dist = dist(box, goal);
-                }
+            vector<double> temp;
+            for (Vec2d goal : state.goals) {
+                temp.push_back(dist(box, goal));
             }
-            total_dist += temp_dist;
-            temp_dist = INT8_MAX;
+            cost.push_back(temp);
         }
 
+        total_dist += min_cost_matching(cost); 
+
         // calc dist between player and nearest box
+        int temp_dist = INT8_MAX;
         for (Vec2d box : state.boxes) {
             if (dist(state.player, box) < temp_dist) {
                 temp_dist = dist(state.player, box);
@@ -158,6 +260,7 @@ struct Node
         total_dist += temp_dist;
         return total_dist;
     }
+
 
     /*
         Returns the heuristics added together as a total score
@@ -190,6 +293,8 @@ struct Node
         cout << "moves = " << moves << endl << "g = " << g << endl << "f = " << f() << endl;
     }
 };
+
+
 
 /*
     Insertion sort in descending order of f(n)
@@ -363,8 +468,6 @@ string astar(Node* root) {
             bool node_seen = false;
             nodes_explored++;
 
-            //if (child.is_deadlock()) continue;
-
             //if child in open, dont re-add to open
             //reduce this
             for (Node open_node : open_list) {
@@ -384,10 +487,9 @@ string astar(Node* root) {
 
             if (!node_seen) 
                 open_list.push_back(child);
+        
         }
-
     }
-
     return "NO SOLUTION";
 }
 
