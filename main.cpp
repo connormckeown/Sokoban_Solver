@@ -6,7 +6,7 @@
 
 using namespace std;
 
-vector<vector<char>> mat;
+vector<vector<char>> mat; // Holds the map
 
 struct Vec2d
 {
@@ -87,38 +87,83 @@ struct Node
     }
 
     /*
-        Returns shortest dist from player to the nearest goal
+        Checks if the current state is in a deadlock
     */
-    int manhattan_h() {
-        int min_dist = INT8_MAX;
-        for (Vec2d goal : state.goals) {
-            int curr_dist = dist(state.player, goal);
-            if (curr_dist < min_dist) {
-                min_dist = curr_dist;
+    bool is_deadlock() {
+        bool north = false;
+        bool south = false;
+        bool east = false;
+        bool west = false;
+        bool in_goal = false;
+
+        // Check if any box is in a corner
+        for (Vec2d box : state.boxes) {
+
+            // skip if that box is in a goal
+            for (Vec2d goal : state.goals) {
+                if (box == goal) in_goal = true;
             }
+
+            if (in_goal) {
+                in_goal = false;
+                continue;
+            }
+
+            if (mat[box.y-1][box.x] == '#') north = true; // north has a wall
+            if (mat[box.y+1][box.x] == '#') south = true; // south has a wall
+            if (mat[box.y][box.x+1] == '#') east = true; // east has a wall
+            if (mat[box.y][box.x-1] == '#') west = true; // west has a wall
+
+            if ((west && north) || (north && east) || (east and south) || (west && east)) {
+                return true;
+            }
+            
+            // Reset for next box
+            bool north = false;
+            bool south = false;
+            bool east = false;
+            bool west = false;
         }
-        return min_dist;
+        return false;
     }
 
     /*
         Returns shortest dist from player to nearest box
+        + distances from all boxes to their nearest goal
     */
-    int h2() {
-        int min_dist = INT8_MAX;
-        for (Vec2d b : state.boxes) {
-            int box_dist = dist(b, state.player);
-            if (box_dist < min_dist) {
-                min_dist = box_dist;
+    int h() {
+        int h = INT8_MAX;
+        int temp_dist = INT8_MAX;
+        int total_dist = 0;
+
+        // for each box, calculate the distance between it and its nearest goal
+        // add that value to total_dist
+        for (Vec2d box : state.boxes) {
+            for (Vec2d goal: state.goals) {
+                if (dist(box, goal) < temp_dist) {
+                    temp_dist = dist(box, goal);
+                }
+            }
+            total_dist += temp_dist;
+            temp_dist = INT8_MAX;
+        }
+
+        // calc dist between player and nearest box
+        for (Vec2d box : state.boxes) {
+            if (dist(state.player, box) < temp_dist) {
+                temp_dist = dist(state.player, box);
             }
         }
-        return min_dist;
+
+        total_dist += temp_dist;
+        return total_dist;
     }
 
     /*
         Returns the heuristics added together as a total score
     */
     int f() {
-        return g + max(manhattan_h(), h2());
+        return g + h();
     }
 
     bool is_box_coord(Vec2d p) {    // To check if the given coordinate corresponds to a box
@@ -159,14 +204,14 @@ void sort_nodes(vector<Node> &v) {
          v[j] = v[j-1];
          j--;
       }
-      v[j] = key; 
+      v[j] = key;
     }
 }
 
 /*
     Checks to see if all box locations and player location are the same
 */
-bool compare_nodes(const Node &a, const Node &b) {
+bool nodes_equal(const Node &a, const Node &b) {
     int correct_boxes = 0;
     bool player = false;
     for (Vec2d abox : a.state.boxes) {
@@ -191,6 +236,7 @@ bool compare_nodes(const Node &a, const Node &b) {
 char last_move(string moves) {
     return moves[moves.length()-1];
 }
+
 
 /*
     Returns a vector of possible successor Nodes
@@ -292,6 +338,7 @@ string astar(Node* root) {
     vector<Node> closed_list, open_list;
     open_list.push_back(*root);
     int size = 1000;
+    int nodes_explored = 0;
 
     while(!open_list.empty()) {
         sort_nodes(open_list);  // sort by decreasing f(n)
@@ -299,26 +346,27 @@ string astar(Node* root) {
         open_list.pop_back();
         closed_list.push_back(n);   // move n to closed
 
-        //n.print();
-
         if (n.goal_test()) {
-            cout << "open nodes: " << open_list.size() << endl;
-            cout << "closed nodes: " << closed_list.size() << endl;
+            cout << "Solution found... " << nodes_explored << " nodes explored" << endl;
             return n.moves; // if n is a goal return path
-        }     
+        }
 
-        // print open and closed lists periodically
-        if (open_list.size() > size) {
-            cout << "open nodes: " << open_list.size() << ", closed nodes: " << closed_list.size() << endl;
+        // if n is a deadlock state, dont check its children
+        if (n.is_deadlock()) continue;
+
+        // print searching message periodically
+        if (nodes_explored > size) {
+            cout << "...Searching... " << nodes_explored << " nodes explored" << endl;
             size += 1000;
         }
 
         for (Node child : get_possible_successors(&n)) {
             bool node_seen = false;
+            nodes_explored++;
 
             //if child in open, continue
             for (Node open_node : open_list) {
-                if (compare_nodes(child, open_node)) {  
+                if (nodes_equal(child, open_node)) {  
                     node_seen = true;
                     break;
                 }
@@ -326,7 +374,7 @@ string astar(Node* root) {
             
             //if child in closed, continue
             for (Node closed_node : closed_list) {
-                if (compare_nodes(child, closed_node)) {
+                if (nodes_equal(child, closed_node)) {
                     node_seen = true;
                     break;
                 }
