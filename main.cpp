@@ -114,7 +114,7 @@ struct Node
             if (mat[box.y][box.x+1] == '#') east = true; // east has a wall
             if (mat[box.y][box.x-1] == '#') west = true; // west has a wall
 
-            if ((west && north) || (north && east) || (east and south) || (west && east)) {
+            if ((west && north) || (north && east) || (east and south) || (west && south)) {
                 return true;
             }
             
@@ -337,8 +337,8 @@ vector<Node> get_possible_successors(Node* curr) {
 string astar(Node* root) {
     vector<Node> closed_list, open_list;
     open_list.push_back(*root);
-    int size = 1000;
     int nodes_explored = 0;
+    chrono::steady_clock::time_point timer = chrono::steady_clock::now();
 
     while(!open_list.empty()) {
         sort_nodes(open_list);  // sort by decreasing f(n)
@@ -351,20 +351,19 @@ string astar(Node* root) {
             return n.moves; // if n is a goal return path
         }
 
-        // if n is a deadlock state, dont check its children
-        if (n.is_deadlock()) continue;
-
         // print searching message periodically
-        if (nodes_explored > size) {
+        if (chrono::duration_cast<chrono::seconds>(chrono::steady_clock::now() - timer).count() > 5.0) {
+            timer = std::chrono::steady_clock::now();
             cout << "...Searching... " << nodes_explored << " nodes explored" << endl;
-            size += 1000;
         }
 
         for (Node child : get_possible_successors(&n)) {
             bool node_seen = false;
             nodes_explored++;
 
-            //if child in open, continue
+            if (child.is_deadlock()) continue;
+
+            //if child in open, dont re-add to open
             for (Node open_node : open_list) {
                 if (nodes_equal(child, open_node)) {  
                     node_seen = true;
@@ -372,7 +371,7 @@ string astar(Node* root) {
                 }
             }
             
-            //if child in closed, continue
+            //if child in closed, dont add it to open
             for (Node closed_node : closed_list) {
                 if (nodes_equal(child, closed_node)) {
                     node_seen = true;
