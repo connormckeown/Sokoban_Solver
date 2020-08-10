@@ -90,10 +90,10 @@ struct Node
         Checks if the current state is in a deadlock
     */
     bool is_deadlock() {
-        bool north = false;
-        bool south = false;
-        bool east = false;
-        bool west = false;
+        bool north = true;
+        bool south = true;
+        bool east = true;
+        bool west = true;
         bool in_goal = false;
 
         // Check if any box is in a corner
@@ -109,20 +109,20 @@ struct Node
                 continue;
             }
 
-            if (mat[box.y-1][box.x] == '#') north = true; // north has a wall
-            if (mat[box.y+1][box.x] == '#') south = true; // south has a wall
-            if (mat[box.y][box.x+1] == '#') east = true; // east has a wall
-            if (mat[box.y][box.x-1] == '#') west = true; // west has a wall
+            if (mat[box.y-1][box.x] != '#') north = false; // north has a wall
+            if (mat[box.y+1][box.x] != '#') south = false; // south has a wall
+            if (mat[box.y][box.x+1] != '#') east = false; // east has a wall
+            if (mat[box.y][box.x-1] != '#') west = false; // west has a wall
 
             if ((west && north) || (north && east) || (east and south) || (west && south)) {
                 return true;
             }
             
             // Reset for next box
-            bool north = false;
-            bool south = false;
-            bool east = false;
-            bool west = false;
+            bool north = true;
+            bool south = true;
+            bool east = true;
+            bool west = true;
         }
         return false;
     }
@@ -351,6 +351,8 @@ string astar(Node* root) {
             return n.moves; // if n is a goal return path
         }
 
+        if (n.is_deadlock()) continue; // if n is in a deadlock, dont bother checking its children
+
         // print searching message periodically
         if (chrono::duration_cast<chrono::seconds>(chrono::steady_clock::now() - timer).count() > 5.0) {
             timer = std::chrono::steady_clock::now();
@@ -361,9 +363,10 @@ string astar(Node* root) {
             bool node_seen = false;
             nodes_explored++;
 
-            if (child.is_deadlock()) continue;
+            //if (child.is_deadlock()) continue;
 
             //if child in open, dont re-add to open
+            //reduce this
             for (Node open_node : open_list) {
                 if (nodes_equal(child, open_node)) {  
                     node_seen = true;
