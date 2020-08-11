@@ -781,6 +781,29 @@ int main(int argc, char *argv[]) {
     auto t2 = chrono::high_resolution_clock::now();
     float duration = chrono::duration_cast<chrono::microseconds>(t2 - t1).count();
 
-    cout << "time: " << duration/1000000.0 << " seconds" << endl;
-    cout << endl << "solution: " << solution << endl;
+    // Computing solution complexity
+    int B = 0, P = 0, E = 0;
+    for (char c : solution) {
+        if (c == 'U' || c == 'D' || c == 'L' || c == 'R')
+            B++;
+        P++;
+    }
+
+    // Finding the number of empty cells in the map
+    bool inside = false;
+    for (vector<char> row : mat) {
+        for (char c : row) {
+            if (c == ' ' && inside) {
+                E++;
+            }
+            if (c == '#') {
+                inside = !inside;
+            }
+        }
+        inside = false;
+    }
+
+    cout << "Time: " << duration/1000000.0 << " seconds" << endl;
+    cout << "Solution: " << solution << endl;
+    cout << "BP/E Solution Complexity: " << B << "*" << P << "/" << E << endl;
 }
