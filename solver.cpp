@@ -160,8 +160,137 @@ double min_cost_matching(const vector<vector<double>> &cost) {
     return result;
 }
 
+/*
 
-//score is going to be based off the boxes dists from the goals
+*/
+struct BGNode
+{
+    Vec2d box;
+    Vec2d goal;
+    BGNode* parent;
+    char move;
+    int g;
+
+    BGNode(Vec2d box, Vec2d goal) {
+        this->box = box;
+        this->goal = goal;
+        parent = NULL;
+        g = 0;
+    }
+
+    BGNode(Vec2d box, Vec2d goal, BGNode* parent, char move) {
+        this->box = box;
+        this->goal = goal;
+        this->parent = parent;
+        this->move = move;
+        g = parent->g+1;
+    }
+
+    bool goal_test() {
+        if (box == goal) return true;
+        return false;
+    }
+
+    bool operator==(const BGNode& bg) const
+    {
+        return (this->box == bg.box && this->goal == bg.goal);
+    }
+
+    int f() {
+        return g + dist(box, goal);
+    }
+
+    /*
+        Returns possible successors after a reverse push of the box in the direction of the goal.
+    */
+    vector<BGNode> get_possible_successors() {
+        vector<BGNode> successors;
+        
+        // Checking up and down
+        if (mat[box.y-1][box.x] != '#' && mat[box.y+1][box.x] != '#') {
+            if (this->move != 'd') {
+                BGNode up = BGNode(Vec2d(box.x, box.y-1), goal, this, 'u');
+                successors.push_back(up);
+            }
+            if (this->move != 'u') {
+                BGNode down = BGNode(Vec2d(box.x, box.y+1), goal, this, 'd');
+                successors.push_back(down);
+            }
+        }
+        
+        // Checking left and right
+        if (mat[box.y][box.x-1] != '#' && mat[box.y][box.x+1] != '#') {
+            if (this->move != 'r') {
+                BGNode left = BGNode(Vec2d(box.x-1, box.y), goal, this, 'l');
+                successors.push_back(left);
+            }
+            if (this->move != 'l') {
+                BGNode right = BGNode(Vec2d(box.x+1, box.y), goal, this, 'r');
+                successors.push_back(right);
+            }
+        }
+        return successors;
+    }
+};
+
+void sort_bgnodes(vector<BGNode> &v) {
+    BGNode key = v[0];
+    int j;
+    for(int i = 1; i < v.size(); i++) {
+      key = v[i];
+      j = i;
+      while(j > 0 && v[j-1].f() < key.f()) {
+         v[j] = v[j-1];
+         j--;
+      }
+      v[j] = key;
+    }
+}
+
+int bg_astar(BGNode* root) {
+    vector<BGNode> closed_list, open_list;
+    open_list.push_back(*root);
+    int shortest_dist = 0;
+
+    while(!open_list.empty()) {
+        sort_bgnodes(open_list);  // sort by decreasing f(n)
+        BGNode n = open_list.back();  // n has the lowest f(n)
+        open_list.pop_back();
+        closed_list.push_back(n);   // move n to closed
+
+        if (n.goal_test()) {
+            return n.g; // return number of moves in the shortest path aka. g
+        }
+
+        for (BGNode child : n.get_possible_successors()) {
+            bool node_seen = false;
+
+            //if child in open, dont re-add to open
+            for (BGNode open_node : open_list) {
+                if (child == open_node) {  
+                    node_seen = true;
+                    break;
+                }
+            }
+            
+            //if child in closed, dont add it to open
+            for (BGNode closed_node : closed_list) {
+                if (child == closed_node) {
+                    node_seen = true;
+                    break;
+                }
+            }
+
+            if (!node_seen) 
+                open_list.push_back(child);
+        
+        }
+    }
+    return 10000; // no solution, distance is inf
+}
+
+
+
 struct Node
 {
     State state;
@@ -242,18 +371,23 @@ struct Node
         for (Vec2d box : state.boxes) {
             vector<double> temp;
             for (Vec2d goal : state.goals) {
-                temp.push_back(dist(box, goal));
+                BGNode* root = new BGNode(box, goal);
+                int shortest_dist = bg_astar(root); // sometimes it can't find any path (10000 for each box,goal)
+                //cout << "bg_astar found the shortest distance to be " << shortest_dist << endl;
+                temp.push_back(shortest_dist); // push back shortest distance between box and goal (if not found, dist is inf)
             }
             cost.push_back(temp);
         }
 
-        total_dist += min_cost_matching(cost); 
+        total_dist += min_cost_matching(cost);
 
-        // calc dist between player and nearest box
-        int temp_dist = INT8_MAX;
+        // calc dist between player and nearest box using A*
+        int temp_dist = INT_MAX;
         for (Vec2d box : state.boxes) {
-            if (dist(state.player, box) < temp_dist) {
-                temp_dist = dist(state.player, box);
+            BGNode* root = new BGNode(state.player, box); // change
+            int shortest_dist = bg_astar(root); 
+            if (shortest_dist < temp_dist) {
+                temp_dist = shortest_dist;
             }
         }
 
@@ -392,7 +526,6 @@ struct Node
                 }
             }
         }
-
         return successors;
     }
 };
@@ -442,11 +575,19 @@ bool nodes_equal(const Node &a, const Node &b) {
 string astar(Node* root) {
     vector<Node> closed_list, open_list;
     open_list.push_back(*root);
-    int nodes_explored = 0;
+    int nodes_explored = 1;
     chrono::steady_clock::time_point timer = chrono::steady_clock::now();
 
     while(!open_list.empty()) {
         sort_nodes(open_list);  // sort by decreasing f(n)
+
+        /*
+        for (Node open : open_list) {
+            cout << open.f() << " ";
+        }
+        cout << endl;
+        */
+
         Node n = open_list.back();  // n has the lowest f(n)
         open_list.pop_back();
         closed_list.push_back(n);   // move n to closed
@@ -462,7 +603,7 @@ string astar(Node* root) {
         if (chrono::duration_cast<chrono::seconds>(chrono::steady_clock::now() - timer).count() > 5.0) {
             timer = std::chrono::steady_clock::now();
             cout << "...Searching... " << nodes_explored << " nodes explored" << endl;
-        }
+        }        
 
         for (Node child : n.get_possible_successors()) {
             bool node_seen = false;
