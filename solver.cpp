@@ -306,6 +306,8 @@ struct Node
     string moves;
     int g;
 
+    Node(){};
+
     Node(State state) {
         this->state = state;
         parent = NULL;
@@ -577,8 +579,9 @@ bool nodes_equal(const Node &a, const Node &b) {
     return correct_boxes == a.state.boxes.size() && player;
 }
 
+
 /*
-    A* search with f(n) = g(n) + h(n)
+    A* search
 */
 string astar(Node* root) {
     vector<Node> closed_list, open_list;
@@ -644,6 +647,85 @@ string astar(Node* root) {
 }
 
 /*
+    IDA* search
+*/
+string idastar(Node* root, int T) {
+    vector<Node> closed_list, open_list;
+    open_list.push_back(*root);
+    int nodes_explored = 1;
+    int new_T = INT_MAX;
+    Node n;
+    chrono::steady_clock::time_point timer = chrono::steady_clock::now();
+
+    while(!open_list.empty()) {
+        sort_nodes(open_list);  // sort by decreasing f(n)
+        n = open_list.back();  // n has the lowest f(n)
+        open_list.pop_back();
+        closed_list.push_back(n);   // move n to closed
+
+        //cout << "threshold = " << threshold << endl;
+
+        if (n.goal_test()) {
+            cout << "Solution found... " << nodes_explored << " nodes explored" << endl;
+            return n.moves; // if n is a goal return path
+        }
+
+        if (n.is_deadlock()) continue; // if n is in a deadlock, dont bother checking its children
+
+        // print searching message periodically
+        if (chrono::duration_cast<chrono::seconds>(chrono::steady_clock::now() - timer).count() > 5.0) {
+            timer = std::chrono::steady_clock::now();
+            cout << "...Searching... " << nodes_explored << " nodes explored" << endl;
+        }        
+
+        for (Node child : n.get_possible_successors()) {
+            bool node_seen = false;
+            nodes_explored++;
+
+            //cout << "child.f() = " << child.f() << endl;
+            if (child.f() >= T) { // f(child) >= T -> dont add it to open
+                continue;
+            }
+
+            if (child.f() < new_T) {  // computing next threshold
+                new_T = child.f();
+                //cout << "next_threshold = " << next_threshold << endl;
+            }
+
+            //if child in open, dont re-add to open
+            //reduce this
+            for (Node open_node : open_list) {
+                if (nodes_equal(child, open_node)) {  
+                    node_seen = true;
+                    break;
+                }
+            }
+
+            if (node_seen) continue;
+            
+            //if child in closed, dont add it to open
+            for (Node closed_node : closed_list) {
+                if (nodes_equal(child, closed_node)) {
+                    node_seen = true;
+                    break;
+                }
+            }
+
+            if (!node_seen) 
+                open_list.push_back(child);
+        
+        }
+        //threshold = next_threshold; // setting new threshold
+    }
+
+    return idastar(&n, new_T);
+}
+
+
+
+
+
+/*
     Returns the initial state and also fills the global matrix
 */
 State get_state_from_file(string path) {
@@ -694,7 +776,8 @@ int main(int argc, char *argv[]) {
     
     // Timing the search
     auto t1 = chrono::high_resolution_clock::now();
-    string solution = astar(start);
+    //string solution = astar(start);
+    string solution = idastar(start, start->h());
     auto t2 = chrono::high_resolution_clock::now();
     float duration = chrono::duration_cast<chrono::microseconds>(t2 - t1).count();
 
