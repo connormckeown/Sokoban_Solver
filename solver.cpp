@@ -205,7 +205,7 @@ struct BGNode
     */
     vector<BGNode> get_possible_successors() {
         vector<BGNode> successors;
-        
+    
         // Checking up
         if (mat[box.y-1][box.x] != '#' && mat[box.y+1][box.x] != '#') {
             if (this->move != 'd') {
@@ -844,7 +844,8 @@ int main(int argc, char *argv[]) {
 
     // Timing the search
     auto t1 = chrono::high_resolution_clock::now();
-    string solution = idastar(start, start->h());
+    string solution = idastar(start, start->f()); // h()
+    //string solution = astar(start);
     auto t2 = chrono::high_resolution_clock::now();
     float duration = chrono::duration_cast<chrono::microseconds>(t2 - t1).count();
 
