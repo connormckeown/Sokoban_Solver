@@ -207,7 +207,7 @@ struct BGNode
         vector<BGNode> successors;
         
         // Checking up
-        if (mat[box.y-1][box.x] != '#') {
+        if (mat[box.y-1][box.x] != '#' && mat[box.y+1][box.x] != '#') {
             if (this->move != 'd') {
                 BGNode up = BGNode(Vec2d(box.x, box.y-1), goal, this, 'u');
                 successors.push_back(up);
@@ -215,7 +215,7 @@ struct BGNode
         }
         
         // Checking down
-        if (mat[box.y+1][box.x] != '#') {
+        if (mat[box.y+1][box.x] != '#' && mat[box.y-1][box.x] != '#') {
             if (this->move != 'u') {
                 BGNode down = BGNode(Vec2d(box.x, box.y+1), goal, this, 'd');
                 successors.push_back(down);
@@ -223,7 +223,7 @@ struct BGNode
         }
 
         // Checking left
-        if (mat[box.y][box.x-1] != '#') {
+        if (mat[box.y][box.x-1] != '#' && mat[box.y][box.x+1] != '#') {
             if (this->move != 'r') {
                 BGNode left = BGNode(Vec2d(box.x-1, box.y), goal, this, 'l');
                 successors.push_back(left);
@@ -231,7 +231,7 @@ struct BGNode
         }
 
         // Checking right
-        if (mat[box.y][box.x+1] != '#') {
+        if (mat[box.y][box.x+1] != '#' && mat[box.y][box.x-1] != '#') {
             if (this->move != 'l') {
                 BGNode right = BGNode(Vec2d(box.x+1, box.y), goal, this, 'r');
                 successors.push_back(right);
