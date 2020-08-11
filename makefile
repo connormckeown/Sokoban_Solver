@@ -1,5 +1,5 @@
 main:
-	g++ -o main main.cpp
+	g++ -o solver solver.cpp
 
 clean:
-	rm main
+	rm solver

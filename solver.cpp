@@ -261,7 +261,6 @@ struct Node
         return total_dist;
     }
 
-
     /*
         Returns the heuristics added together as a total score
     */
@@ -292,8 +291,111 @@ struct Node
         state.print();
         cout << "moves = " << moves << endl << "g = " << g << endl << "f = " << f() << endl;
     }
-};
 
+    /*
+        Returns the last move.
+        For the backtrack heuristic.
+    */
+    char last_move() {
+        if (parent)
+            return parent->moves[parent->moves.length()-1];
+        else
+            return ' ';
+    }
+
+    /*
+        Returns a vector of possible successor Nodes
+    */
+    vector<Node> get_possible_successors() {
+        vector<Node> successors;
+        int px = this->state.player.x;
+        int py = this->state.player.y;
+        char prev_move = this->last_move();
+
+        // Checking up
+        if (!this->is_box_coord(Vec2d(px, py-1)) && mat[py-1][px] != '#' && prev_move != 'd') {
+            Node next = Node(this->state, this, 'u');
+            next.state.player.y -= 1;
+            successors.push_back(next);
+        }
+        // Checking down
+        if (!this->is_box_coord(Vec2d(px, py+1)) && mat[py+1][px] != '#' && prev_move != 'u') {
+            Node next = Node(this->state, this, 'd');
+            next.state.player.y += 1;
+            successors.push_back(next);
+        }
+        // Checking left
+        if (!this->is_box_coord(Vec2d(px-1, py)) && mat[py][px-1] != '#' && prev_move != 'r') {
+            Node next = Node(this->state, this, 'l');
+            next.state.player.x -= 1;
+            successors.push_back(next);
+        }
+        // Checking right
+        if (!this->is_box_coord(Vec2d(px+1, py)) && mat[py][px+1] != '#' && prev_move != 'l') {
+            Node next = Node(this->state, this, 'r');
+            next.state.player.x += 1;
+            successors.push_back(next);
+        }
+
+        // Checking up and box
+        if (this->is_box_coord(Vec2d(px, py-1)) && !this->is_box_coord(Vec2d(px, py-2)) && mat[py-2][px] != '#') {
+            Node next = Node(this->state, this, 'U');
+            
+            // Finding the corresponding box and push it
+            for (int i = 0; i < next.state.boxes.size(); i++) {
+                if (next.state.boxes[i] == Vec2d(px, py-1)) {
+                    next.state.boxes[i] = Vec2d(px, py-2);
+                    next.state.player.y -= 1;
+                    successors.push_back(next);
+                }
+            }
+        }
+
+        // Checking down and box
+        if (this->is_box_coord(Vec2d(px, py+1)) && !this->is_box_coord(Vec2d(px, py+2)) && mat[py+2][px] != '#') {
+            Node next = Node(this->state, this, 'D');
+            
+            // Finding the corresponding box and push it
+            for (int i = 0; i < next.state.boxes.size(); i++) {
+                if (next.state.boxes[i] == Vec2d(px, py+1)) {
+                    next.state.boxes[i] = Vec2d(px, py+2);
+                    next.state.player.y += 1;
+                    successors.push_back(next);
+                }
+            }
+        }
+
+        // Checking left and box
+        if (this->is_box_coord(Vec2d(px-1, py)) && !this->is_box_coord(Vec2d(px-2, py)) && mat[py][px-2] != '#') {
+            Node next = Node(this->state, this, 'L');
+            
+            // Finding the corresponding box and push it
+            for (int i = 0; i < next.state.boxes.size(); i++) {
+                if (next.state.boxes[i] == Vec2d(px-1, py)) {
+                    next.state.boxes[i] = Vec2d(px-2, py);
+                    next.state.player.x -= 1;
+                    successors.push_back(next);
+                }
+            }
+        }
+
+        // Checking right and box
+        if (this->is_box_coord(Vec2d(px+1, py)) && !this->is_box_coord(Vec2d(px+2, py)) && mat[py][px+2] != '#') {
+            Node next = Node(this->state, this, 'R');
+            
+            // Finding the corresponding box and push it
+            for (int i = 0; i < next.state.boxes.size(); i++) {
+                if (next.state.boxes[i] == Vec2d(px+1, py)) {
+                    next.state.boxes[i] = Vec2d(px+2, py);
+                    next.state.player.x += 1;
+                    successors.push_back(next);
+                }
+            }
+        }
+
+        return successors;
+    }
+};
 
 
 /*
@@ -335,108 +437,6 @@ bool nodes_equal(const Node &a, const Node &b) {
 }
 
 /*
-    Returns the last move.
-    For the backtrack heuristic.
-*/
-char last_move(string moves) {
-    return moves[moves.length()-1];
-}
-
-
-/*
-    Returns a vector of possible successor Nodes
-*/
-vector<Node> get_possible_successors(Node* curr) {
-    vector<Node> successors;
-    int px = curr->state.player.x;
-    int py = curr->state.player.y;
-    char prev_move = last_move(curr->moves);
-
-    // Checking up
-    if (!curr->is_box_coord(Vec2d(px, py-1)) && mat[py-1][px] != '#' && prev_move != 'd') {
-        Node next = Node(curr->state, curr, 'u');
-        next.state.player.y -= 1;
-        successors.push_back(next);
-    }
-    // Checking down
-    if (!curr->is_box_coord(Vec2d(px, py+1)) && mat[py+1][px] != '#' && prev_move != 'u') {
-        Node next = Node(curr->state, curr, 'd');
-        next.state.player.y += 1;
-        successors.push_back(next);
-    }
-    // Checking left
-    if (!curr->is_box_coord(Vec2d(px-1, py)) && mat[py][px-1] != '#' && prev_move != 'r') {
-        Node next = Node(curr->state, curr, 'l');
-        next.state.player.x -= 1;
-        successors.push_back(next);
-    }
-    // Checking right
-    if (!curr->is_box_coord(Vec2d(px+1, py)) && mat[py][px+1] != '#' && prev_move != 'l') {
-        Node next = Node(curr->state, curr, 'r');
-        next.state.player.x += 1;
-        successors.push_back(next);
-    }
-
-    // Checking up and box
-    if (curr->is_box_coord(Vec2d(px, py-1)) && !curr->is_box_coord(Vec2d(px, py-2)) && mat[py-2][px] != '#') {
-        Node next = Node(curr->state, curr, 'U');
-        
-        // Finding the corresponding box and push it
-        for (int i = 0; i < next.state.boxes.size(); i++) {
-            if (next.state.boxes[i] == Vec2d(px, py-1)) {
-                next.state.boxes[i] = Vec2d(px, py-2);
-                next.state.player.y -= 1;
-                successors.push_back(next);
-            }
-        }
-    }
-
-    // Checking down and box
-    if (curr->is_box_coord(Vec2d(px, py+1)) && !curr->is_box_coord(Vec2d(px, py+2)) && mat[py+2][px] != '#') {
-        Node next = Node(curr->state, curr, 'D');
-        
-        // Finding the corresponding box and push it
-        for (int i = 0; i < next.state.boxes.size(); i++) {
-            if (next.state.boxes[i] == Vec2d(px, py+1)) {
-                next.state.boxes[i] = Vec2d(px, py+2);
-                next.state.player.y += 1;
-                successors.push_back(next);
-            }
-        }
-    }
-
-    // Checking left and box
-    if (curr->is_box_coord(Vec2d(px-1, py)) && !curr->is_box_coord(Vec2d(px-2, py)) && mat[py][px-2] != '#') {
-        Node next = Node(curr->state, curr, 'L');
-        
-        // Finding the corresponding box and push it
-        for (int i = 0; i < next.state.boxes.size(); i++) {
-            if (next.state.boxes[i] == Vec2d(px-1, py)) {
-                next.state.boxes[i] = Vec2d(px-2, py);
-                next.state.player.x -= 1;
-                successors.push_back(next);
-            }
-        }
-    }
-
-    // Checking right and box
-    if (curr->is_box_coord(Vec2d(px+1, py)) && !curr->is_box_coord(Vec2d(px+2, py)) && mat[py][px+2] != '#') {
-        Node next = Node(curr->state, curr, 'R');
-        
-        // Finding the corresponding box and push it
-        for (int i = 0; i < next.state.boxes.size(); i++) {
-            if (next.state.boxes[i] == Vec2d(px+1, py)) {
-                next.state.boxes[i] = Vec2d(px+2, py);
-                next.state.player.x += 1;
-                successors.push_back(next);
-            }
-        }
-    }
-
-    return successors;
-}
-
-/*
     A* search with f(n) = g(n) + h(n)
 */
 string astar(Node* root) {
@@ -464,7 +464,7 @@ string astar(Node* root) {
             cout << "...Searching... " << nodes_explored << " nodes explored" << endl;
         }
 
-        for (Node child : get_possible_successors(&n)) {
+        for (Node child : n.get_possible_successors()) {
             bool node_seen = false;
             nodes_explored++;
 
