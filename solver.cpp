@@ -649,24 +649,26 @@ string astar(Node* root) {
 /*
     IDA* search
 */
+vector<Node> closed_list, open_list;
 string idastar(Node* root, int T) {
-    vector<Node> closed_list, open_list;
+    //vector<Node> closed_list, open_list;
     open_list.push_back(*root);
     int nodes_explored = 1;
     int new_T = INT_MAX;
     Node n;
     chrono::steady_clock::time_point timer = chrono::steady_clock::now();
 
+    //cout << T << endl;
     while(!open_list.empty()) {
         sort_nodes(open_list);  // sort by decreasing f(n)
         n = open_list.back();  // n has the lowest f(n)
         open_list.pop_back();
         closed_list.push_back(n);   // move n to closed
 
-        //cout << "threshold = " << threshold << endl;
-
         if (n.goal_test()) {
             cout << "Solution found... " << nodes_explored << " nodes explored" << endl;
+            open_list.clear();
+            closed_list.clear();
             return n.moves; // if n is a goal return path
         }
 
@@ -717,13 +719,10 @@ string idastar(Node* root, int T) {
         }
         //threshold = next_threshold; // setting new threshold
     }
-
+    if (new_T == T) 
+        return "NO SOLUTION";
     return idastar(&n, new_T);
 }
-
-
-
-
 
 /*
     Returns the initial state and also fills the global matrix
@@ -765,45 +764,24 @@ State get_state_from_file(string path) {
     return state;
 }
 
-/*
-    TODO
-    -change heuristic to prioritize boxes that arent on goals
-    -also just change heuristic in general
-    -change h() to be the distance from the boxes to nearest goals + distance from player to nearest goals
-*/
+
 int main(int argc, char *argv[]) {
-    Node* start = new Node(get_state_from_file(argv[1]));
     
-    // Timing the search
-    auto t1 = chrono::high_resolution_clock::now();
-    //string solution = astar(start);
-    string solution = idastar(start, start->h());
-    auto t2 = chrono::high_resolution_clock::now();
-    float duration = chrono::duration_cast<chrono::microseconds>(t2 - t1).count();
+    // Solve each puzzle taken in as an argument
+    for (int i = 1; i < argc; i++) {
+        Node* start = new Node(get_state_from_file(argv[i]));
 
-    // Computing solution complexity
-    int B = 0, P = 0, E = 0;
-    for (char c : solution) {
-        if (c == 'U' || c == 'D' || c == 'L' || c == 'R')
-            B++;
-        P++;
+        cout << "Solving " << argv[i] << endl;
+
+        // Timing the search
+        auto t1 = chrono::high_resolution_clock::now();
+        //string solution = astar(start);
+        string solution = idastar(start, start->h());
+        auto t2 = chrono::high_resolution_clock::now();
+        float duration = chrono::duration_cast<chrono::microseconds>(t2 - t1).count();
+
+        cout << "Time: " << duration/1000000.0 << " seconds" << endl;
+        cout << "Solution: " << solution << endl << endl;
+        mat.clear(); // clearing global matrix
     }
-
-    // Finding the number of empty cells in the map
-    bool inside = false;
-    for (vector<char> row : mat) {
-        for (char c : row) {
-            if (c == ' ' && inside) {
-                E++;
-            }
-            if (c == '#') {
-                inside = !inside;
-            }
-        }
-        inside = false;
-    }
-
-    cout << "Time: " << duration/1000000.0 << " seconds" << endl;
-    cout << "Solution: " << solution << endl;
-    cout << "BP/E Solution Complexity: " << B << "*" << P << "/" << E << endl;
 }
