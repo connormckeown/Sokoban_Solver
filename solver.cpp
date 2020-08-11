@@ -201,29 +201,37 @@ struct BGNode
     }
 
     /*
-        Returns possible successors after a reverse push of the box in the direction of the goal.
+        Returns possible successors after a 'push' of the box in the direction of the goal.
     */
     vector<BGNode> get_possible_successors() {
         vector<BGNode> successors;
         
-        // Checking up and down
-        if (mat[box.y-1][box.x] != '#' && mat[box.y+1][box.x] != '#') {
+        // Checking up
+        if (mat[box.y-1][box.x] != '#') {
             if (this->move != 'd') {
                 BGNode up = BGNode(Vec2d(box.x, box.y-1), goal, this, 'u');
                 successors.push_back(up);
             }
+        }
+        
+        // Checking down
+        if (mat[box.y+1][box.x] != '#') {
             if (this->move != 'u') {
                 BGNode down = BGNode(Vec2d(box.x, box.y+1), goal, this, 'd');
                 successors.push_back(down);
             }
         }
-        
-        // Checking left and right
-        if (mat[box.y][box.x-1] != '#' && mat[box.y][box.x+1] != '#') {
+
+        // Checking left
+        if (mat[box.y][box.x-1] != '#') {
             if (this->move != 'r') {
                 BGNode left = BGNode(Vec2d(box.x-1, box.y), goal, this, 'l');
                 successors.push_back(left);
             }
+        }
+
+        // Checking right
+        if (mat[box.y][box.x+1] != '#') {
             if (this->move != 'l') {
                 BGNode right = BGNode(Vec2d(box.x+1, box.y), goal, this, 'r');
                 successors.push_back(right);
@@ -581,6 +589,7 @@ string astar(Node* root) {
     while(!open_list.empty()) {
         sort_nodes(open_list);  // sort by decreasing f(n)
 
+        // testing
         /*
         for (Node open : open_list) {
             cout << open.f() << " ";
