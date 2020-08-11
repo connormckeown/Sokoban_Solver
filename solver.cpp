@@ -239,6 +239,44 @@ struct BGNode
         }
         return successors;
     }
+
+    //box is player in this case
+    vector<BGNode> get_player_possible_successors() {
+        vector<BGNode> successors;
+        
+        // Checking up
+        if (mat[box.y-1][box.x] != '#') {
+            if (this->move != 'd') {
+                BGNode up = BGNode(Vec2d(box.x, box.y-1), goal, this, 'u');
+                successors.push_back(up);
+            }
+        }
+        
+        // Checking down
+        if (mat[box.y+1][box.x] != '#') {
+            if (this->move != 'u') {
+                BGNode down = BGNode(Vec2d(box.x, box.y+1), goal, this, 'd');
+                successors.push_back(down);
+            }
+        }
+
+        // Checking left
+        if (mat[box.y][box.x-1] != '#') {
+            if (this->move != 'r') {
+                BGNode left = BGNode(Vec2d(box.x-1, box.y), goal, this, 'l');
+                successors.push_back(left);
+            }
+        }
+
+        // Checking right
+        if (mat[box.y][box.x+1] != '#') {
+            if (this->move != 'l') {
+                BGNode right = BGNode(Vec2d(box.x+1, box.y), goal, this, 'r');
+                successors.push_back(right);
+            }
+        }
+        return successors;
+    }
 };
 
 void sort_bgnodes(vector<BGNode> &v) {
@@ -271,6 +309,49 @@ int bg_astar(BGNode* root) {
         }
 
         for (BGNode child : n.get_possible_successors()) {
+            bool node_seen = false;
+
+            //if child in open, dont re-add to open
+            for (BGNode open_node : open_list) {
+                if (child == open_node) {  
+                    node_seen = true;
+                    break;
+                }
+            }
+            
+            //if child in closed, dont add it to open
+            for (BGNode closed_node : closed_list) {
+                if (child == closed_node) {
+                    node_seen = true;
+                    break;
+                }
+            }
+
+            if (!node_seen) 
+                open_list.push_back(child);
+        
+        }
+    }
+    return 10000; // no solution, distance is inf
+}
+
+
+int pg_astar(BGNode* root) {
+    vector<BGNode> closed_list, open_list;
+    open_list.push_back(*root);
+    int shortest_dist = 0;
+
+    while(!open_list.empty()) {
+        sort_bgnodes(open_list);  // sort by decreasing f(n)
+        BGNode n = open_list.back();  // n has the lowest f(n)
+        open_list.pop_back();
+        closed_list.push_back(n);   // move n to closed
+
+        if (n.goal_test()) {
+            return n.g; // return number of moves in the shortest path aka. g
+        }
+
+        for (BGNode child : n.get_player_possible_successors()) {
             bool node_seen = false;
 
             //if child in open, dont re-add to open
@@ -395,7 +476,7 @@ struct Node
         int temp_dist = INT_MAX;
         for (Vec2d box : state.boxes) {
             BGNode* root = new BGNode(state.player, box); // change
-            int shortest_dist = bg_astar(root); 
+            int shortest_dist = pg_astar(root); 
             if (shortest_dist < temp_dist) {
                 temp_dist = shortest_dist;
             }
@@ -591,15 +672,6 @@ string astar(Node* root) {
 
     while(!open_list.empty()) {
         sort_nodes(open_list);  // sort by decreasing f(n)
-
-        // testing
-        /*
-        for (Node open : open_list) {
-            cout << open.f() << " ";
-        }
-        cout << endl;
-        */
-
         Node n = open_list.back();  // n has the lowest f(n)
         open_list.pop_back();
         closed_list.push_back(n);   // move n to closed
@@ -766,22 +838,16 @@ State get_state_from_file(string path) {
 
 
 int main(int argc, char *argv[]) {
-    
-    // Solve each puzzle taken in as an argument
-    for (int i = 1; i < argc; i++) {
-        Node* start = new Node(get_state_from_file(argv[i]));
+    Node* start = new Node(get_state_from_file(argv[1]));
 
-        cout << "Solving " << argv[i] << endl;
+    cout << "Solving " << argv[1] << endl;
 
-        // Timing the search
-        auto t1 = chrono::high_resolution_clock::now();
-        //string solution = astar(start);
-        string solution = idastar(start, start->h());
-        auto t2 = chrono::high_resolution_clock::now();
-        float duration = chrono::duration_cast<chrono::microseconds>(t2 - t1).count();
+    // Timing the search
+    auto t1 = chrono::high_resolution_clock::now();
+    string solution = idastar(start, start->h());
+    auto t2 = chrono::high_resolution_clock::now();
+    float duration = chrono::duration_cast<chrono::microseconds>(t2 - t1).count();
 
-        cout << "Time: " << duration/1000000.0 << " seconds" << endl;
-        cout << "Solution: " << solution << endl << endl;
-        mat.clear(); // clearing global matrix
-    }
+    cout << "Time: " << duration/1000000.0 << " seconds" << endl;
+    cout << "Solution: " << solution << endl << endl;
 }
