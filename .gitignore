@@ -338,3 +338,10 @@ ASALocalRun/
 
 # BeatPulse healthcheck temp database
 healthchecksdb
+
+# GCC executable
+solver
+
+# Report
+Report.pdf
+README.txt
