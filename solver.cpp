@@ -1,8 +1,10 @@
 #include <iostream>
 #include <fstream>
 #include <vector>
-#include <bits/stdc++.h>
+#include <string>
 #include <chrono>
+#include <math.h>
+#include <climits>
 
 using namespace std;
 
@@ -438,7 +440,7 @@ struct Node
             if (mat[box.y][box.x+1] != '#') east = false; // east has a wall
             if (mat[box.y][box.x-1] != '#') west = false; // west has a wall
 
-            if ((west && north) || (north && east) || (east and south) || (west && south)) {
+            if ((west && north) || (north && east) || (east && south) || (west && south)) {
                 return true;
             }
             
