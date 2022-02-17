@@ -2,7 +2,9 @@
 
 ## Overview
 
-A solver written in C++ for the popular japanese puzzle game [Sokoban](https://en.wikipedia.org/wiki/Sokoban). The solver always produces an optimal solution (lowest number of moves) as it uses IDA* search.
+A solver written in C++ for the popular japanese puzzle game [Sokoban](https://en.wikipedia.org/wiki/Sokoban), where a player has to push one or more boxes onto goal squares. The solver always produces an optimal solution (lowest number of moves) as it uses IDA* search.
+
+![Gameplay](https://upload.wikimedia.org/wikipedia/commons/4/4b/Sokoban_ani.gif)
 
 ## Input Format
 
